@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
+import LayoutResponsable from './components/LayoutResponsable'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSpinner from './components/LoadingSpinner'
 
@@ -81,18 +82,22 @@ export default function App() {
             <Route path="/enseignant/indisponibilites" element={<Indisponibilites />} />
           </Route>
 
-          {/* Responsable */}
-          <Route element={<ProtectedRoute roles={['responsable_pedagogique']} />}>
-            <Route path="/responsable" element={<ResponsableDashboard />} />
-            <Route path="/responsable/pv" element={<ValidationPv />} />
-          </Route>
-
           {/* Étudiant */}
           <Route element={<ProtectedRoute roles={['etudiant']} />}>
             <Route path="/etudiant" element={<EtudiantDashboard />} />
             <Route path="/etudiant/soutenances" element={<EtudiantDashboard />} />
           </Route>
 
+        </Route>
+      </Route>
+
+      {/* Responsable — layout top-bar dédié */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute roles={['responsable_pedagogique']} />}>
+          <Route element={<LayoutResponsable />}>
+            <Route path="/responsable" element={<ResponsableDashboard />} />
+            <Route path="/responsable/pv" element={<ValidationPv />} />
+          </Route>
         </Route>
       </Route>
 
