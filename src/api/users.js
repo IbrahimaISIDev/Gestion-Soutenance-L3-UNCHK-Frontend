@@ -2,8 +2,8 @@ import client from './client'
 
 const BASE = '/admin/users'
 
-export const getUsers = (page = 1) =>
-  client.get(BASE, { params: { page } }).then((r) => r.data)
+export const getUsers = (page = 1, params = {}) =>
+  client.get(BASE, { params: { page, ...params } }).then((r) => r.data)
 
 export const getUser = (id) =>
   client.get(`${BASE}/${id}`).then((r) => r.data)

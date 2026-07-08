@@ -10,6 +10,7 @@ import AdminDashboard from './pages/admin/Dashboard'
 import AdminUsers from './pages/admin/Users'
 import AdminSalles from './pages/admin/Salles'
 import AdminAudit from './pages/admin/Audit'
+import PlanifierSoutenance from './pages/admin/PlanifierSoutenance'
 
 import SecretaireDashboard from './pages/secretaire/Dashboard'
 import Soutenances from './pages/secretaire/Soutenances'
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/salles" element={<AdminSalles />} />
             <Route path="/admin/audit" element={<AdminAudit />} />
+            <Route path="/admin/planification" element={<PlanifierSoutenance />} />
           </Route>
 
           {/* Secrétaire */}
