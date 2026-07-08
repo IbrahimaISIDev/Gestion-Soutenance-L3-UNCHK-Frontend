@@ -56,8 +56,9 @@ const NAV_BY_ROLE = {
     { to: '/admin/salles',       label: 'Salles',           icon: Icon.building },
   ],
   secretaire_pedagogique: [
-    { to: '/secretaire',             label: 'Tableau de bord', icon: Icon.grid,     end: true },
-    { to: '/secretaire/soutenances', label: 'Soutenances',     icon: Icon.calendar },
+    { to: '/secretaire',              label: 'Tableau de bord', icon: Icon.grid,     end: true },
+    { to: '/secretaire/soutenances',  label: 'Soutenances',     icon: Icon.document },
+    { to: '/secretaire/planification',label: 'Planification',   icon: Icon.calendar },
   ],
   enseignant: [
     { to: '/enseignant',                  label: 'Tableau de bord',   icon: Icon.grid,     end: true },

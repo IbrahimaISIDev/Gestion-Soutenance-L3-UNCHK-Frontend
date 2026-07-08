@@ -71,6 +71,7 @@ export default function App() {
             <Route path="/secretaire" element={<SecretaireDashboard />} />
             <Route path="/secretaire/soutenances" element={<Soutenances />} />
             <Route path="/secretaire/soutenances/:id" element={<SoutenanceDetail />} />
+            <Route path="/secretaire/planification" element={<PlanifierSoutenance />} />
           </Route>
 
           {/* Enseignant */}
