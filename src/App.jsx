@@ -19,6 +19,7 @@ import Soutenances from './pages/secretaire/Soutenances'
 import SoutenanceDetail from './pages/secretaire/SoutenanceDetail'
 
 import EnseignantDashboard from './pages/enseignant/Dashboard'
+import MesSoutenances from './pages/enseignant/MesSoutenances'
 import MesJurys from './pages/enseignant/MesJurys'
 import Indisponibilites from './pages/enseignant/Indisponibilites'
 
@@ -79,6 +80,7 @@ export default function App() {
           {/* Enseignant */}
           <Route element={<ProtectedRoute roles={['enseignant']} />}>
             <Route path="/enseignant" element={<EnseignantDashboard />} />
+            <Route path="/enseignant/soutenances" element={<MesSoutenances />} />
             <Route path="/enseignant/jury" element={<MesJurys />} />
             <Route path="/enseignant/indisponibilites" element={<Indisponibilites />} />
           </Route>

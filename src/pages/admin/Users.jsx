@@ -4,6 +4,7 @@ import { getUsers, createUser, updateUser, deleteUser } from '../../api/users'
 import { useToast } from '../../contexts/ToastContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useDebounce } from '../../hooks/useDebounce'
 
 const ROLES_OPTIONS = [
   { value: '',                       label: 'Tous les rôles' },
@@ -110,6 +111,7 @@ function UserModal({ initial, onClose, onSave, saving }) {
 export default function AdminUsers() {
   const [page, setPage]       = useState(1)
   const [search, setSearch]   = useState('')
+  const debouncedSearch       = useDebounce(search)
   const [roleFilter, setRoleFilter] = useState('')
   const [modal, setModal]     = useState(null)
   const [confirm, setConfirm] = useState(null)
@@ -139,10 +141,10 @@ export default function AdminUsers() {
 
   const users = useMemo(() => {
     let list = data?.data ?? []
-    if (search)     list = list.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()))
+    if (debouncedSearch) list = list.filter((u) => u.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || u.email.toLowerCase().includes(debouncedSearch.toLowerCase()))
     if (roleFilter) list = list.filter((u) => u.role === roleFilter)
     return list
-  }, [data, search, roleFilter])
+  }, [data, debouncedSearch, roleFilter])
 
   const meta = data?.meta
 

@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext'
+import { getNotifications } from '../api/notifications'
 
 /* ── Inline SVG icons ── */
 const Icon = {
@@ -61,9 +63,10 @@ const NAV_BY_ROLE = {
     { to: '/secretaire/planification',label: 'Planification',   icon: Icon.calendar },
   ],
   enseignant: [
-    { to: '/enseignant',                  label: 'Tableau de bord',   icon: Icon.grid,     end: true },
-    { to: '/enseignant/jury',             label: 'Mes jurys',         icon: Icon.users },
-    { to: '/enseignant/indisponibilites', label: 'Indisponibilités',  icon: Icon.calendar },
+    { to: '/enseignant',                    label: 'Tableau de bord',   icon: Icon.grid,     end: true },
+    { to: '/enseignant/soutenances',        label: 'Mes soutenances',   icon: Icon.document },
+    { to: '/enseignant/jury',               label: 'Mes jurys',         icon: Icon.users },
+    { to: '/enseignant/indisponibilites',   label: 'Indisponibilités',  icon: Icon.calendar },
   ],
   responsable_pedagogique: [
     { to: '/responsable',     label: 'Tableau de bord', icon: Icon.grid,     end: true },
@@ -92,6 +95,14 @@ export default function Layout() {
   const navigate = useNavigate()
   const navLinks = NAV_BY_ROLE[user?.role] ?? []
   const initials = getInitials(user?.name)
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications-count'],
+    queryFn: getNotifications,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  })
+  const unreadCount = (notifData?.data ?? []).filter((n) => !n.lu).length
 
   const handleLogout = async () => {
     await logout()
@@ -165,7 +176,17 @@ export default function Layout() {
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? '' : 'opacity-70'}>{Icon.bell}</span>
+                <span className={`relative ${isActive ? '' : 'opacity-70'}`}>
+                  {Icon.bell}
+                  {unreadCount > 0 && (
+                    <span
+                      className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                      style={{ backgroundColor: '#ef4444' }}
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </span>
                 <span className="flex-1">Notifications</span>
                 {isActive && <span style={{ color: '#c9a227' }}>{Icon.chevronRight}</span>}
               </>

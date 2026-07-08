@@ -5,6 +5,7 @@ import { getSoutenances, confirmSoutenance, cancelSoutenance } from '../../api/s
 import { useToast } from '../../contexts/ToastContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useDebounce } from '../../hooks/useDebounce'
 
 const STATUT_BADGE = {
   brouillon: 'bg-gray-100 text-gray-600',
@@ -68,6 +69,7 @@ export default function Soutenances() {
   const navigate = useNavigate()
   const [page, setPage]           = useState(1)
   const [search, setSearch]       = useState('')
+  const debouncedSearch           = useDebounce(search)
   const [statutFilter, setStatutFilter] = useState('')
   const [confirmCancel, setConfirmCancel] = useState(null)
   const qc = useQueryClient()
@@ -91,8 +93,8 @@ export default function Soutenances() {
 
   const soutenances = useMemo(() => {
     let list = data?.data ?? []
-    if (search) {
-      const q = search.toLowerCase()
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(
         (s) =>
           s.titre?.toLowerCase().includes(q) ||
@@ -102,7 +104,7 @@ export default function Soutenances() {
     }
     if (statutFilter) list = list.filter((s) => s.statut === statutFilter)
     return list
-  }, [data, search, statutFilter])
+  }, [data, debouncedSearch, statutFilter])
 
   const meta = data?.meta
 

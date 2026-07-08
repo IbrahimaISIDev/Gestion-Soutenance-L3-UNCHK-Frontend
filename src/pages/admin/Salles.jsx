@@ -4,6 +4,7 @@ import { getSalles, createSalle, updateSalle, deleteSalle } from '../../api/sall
 import { useToast } from '../../contexts/ToastContext'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import TableSkeleton from '../../components/TableSkeleton'
+import { useDebounce } from '../../hooks/useDebounce'
 
 function PencilIcon() {
   return (
@@ -84,6 +85,7 @@ function SalleModal({ initial, onClose, onSave, saving }) {
 export default function AdminSalles() {
   const [page, setPage]   = useState(1)
   const [search, setSearch] = useState('')
+  const debouncedSearch     = useDebounce(search)
   const [modal, setModal] = useState(null)
   const [confirm, setConfirm] = useState(null)
   const qc = useQueryClient()
@@ -97,12 +99,12 @@ export default function AdminSalles() {
 
   const salles = useMemo(() => {
     const list = data?.data ?? []
-    if (!search) return list
+    if (!debouncedSearch) return list
     return list.filter((s) =>
-      s.nom.toLowerCase().includes(search.toLowerCase()) ||
-      (s.localisation ?? '').toLowerCase().includes(search.toLowerCase())
+      s.nom.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (s.localisation ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
     )
-  }, [data, search])
+  }, [data, debouncedSearch])
 
   const meta = data?.meta
   const active = (data?.data ?? []).filter((s) => s.actif).length
