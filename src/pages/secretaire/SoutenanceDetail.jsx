@@ -12,6 +12,8 @@ import {
   submitPv,
 } from '../../api/soutenances'
 import { getUsers } from '../../api/users'
+import { useToast } from '../../contexts/ToastContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
 
 /* ── Statut soutenance ── */
 const STATUT_BADGE = {
@@ -112,10 +114,12 @@ export default function SoutenanceDetail() {
   const { id }    = useParams()
   const navigate  = useNavigate()
   const qc        = useQueryClient()
+  const toast     = useToast()
 
   const [juryForm, setJuryForm]   = useState({ utilisateur_id: '', role: 'membre' })
   const [pvForm, setPvForm]       = useState({ note: '', mention: '', observations: '' })
   const [showPvForm, setShowPvForm] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['soutenance', id],
@@ -128,13 +132,13 @@ export default function SoutenanceDetail() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['soutenance', id] })
 
-  const confirmMut   = useMutation({ mutationFn: () => confirmSoutenance(id), onSuccess: invalidate })
-  const cancelMut    = useMutation({ mutationFn: () => cancelSoutenance(id),  onSuccess: () => { invalidate(); navigate('/secretaire/soutenances') } })
-  const addJuryMut   = useMutation({ mutationFn: () => addJury(id, juryForm), onSuccess: () => { invalidate(); setJuryForm({ utilisateur_id: '', role: 'membre' }) } })
-  const removeJuryMut= useMutation({ mutationFn: removeJury, onSuccess: invalidate })
-  const createPvMut  = useMutation({ mutationFn: () => createPv(id, pvForm),  onSuccess: () => { invalidate(); setShowPvForm(false) } })
-  const updatePvMut  = useMutation({ mutationFn: ({ pvId, ...body }) => updatePv(pvId, body), onSuccess: invalidate })
-  const submitPvMut  = useMutation({ mutationFn: (pvId) => submitPv(pvId), onSuccess: invalidate })
+  const confirmMut   = useMutation({ mutationFn: () => confirmSoutenance(id), onSuccess: () => { invalidate(); toast.success('Soutenance confirmée.') }, onError: (e) => toast.error(e?.response?.data?.message ?? 'Confirmation impossible.') })
+  const cancelMut    = useMutation({ mutationFn: () => cancelSoutenance(id),  onSuccess: () => { invalidate(); toast.success('Soutenance annulée.'); navigate('/secretaire/soutenances') }, onError: () => toast.error('Erreur lors de l\'annulation.') })
+  const addJuryMut   = useMutation({ mutationFn: () => addJury(id, juryForm), onSuccess: () => { invalidate(); setJuryForm({ utilisateur_id: '', role: 'membre' }); toast.success('Membre ajouté au jury.') }, onError: () => toast.error('Erreur lors de l\'ajout.') })
+  const removeJuryMut= useMutation({ mutationFn: removeJury, onSuccess: () => { invalidate(); toast.success('Membre retiré du jury.') } })
+  const createPvMut  = useMutation({ mutationFn: () => createPv(id, pvForm),  onSuccess: () => { invalidate(); setShowPvForm(false); toast.success('PV créé.') }, onError: () => toast.error('Erreur lors de la création du PV.') })
+  const updatePvMut  = useMutation({ mutationFn: ({ pvId, ...body }) => updatePv(pvId, body), onSuccess: () => { invalidate(); toast.success('PV mis à jour.') } })
+  const submitPvMut  = useMutation({ mutationFn: (pvId) => submitPv(pvId), onSuccess: () => { invalidate(); toast.success('PV soumis pour validation.') } })
 
   if (isLoading) {
     return <p className="px-2 py-10 text-sm text-gray-400">Chargement...</p>
@@ -149,6 +153,15 @@ export default function SoutenanceDetail() {
 
   return (
     <div className="space-y-5">
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Annuler la soutenance"
+        message="Annuler cette soutenance ? Les membres du jury et l'étudiant seront notifiés."
+        confirmLabel="Confirmer l'annulation"
+        confirmClass="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+        onConfirm={() => { cancelMut.mutate(); setConfirmCancel(false) }}
+        onCancel={() => setConfirmCancel(false)}
+      />
 
       {/* ── Barre supérieure ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -174,7 +187,7 @@ export default function SoutenanceDetail() {
           )}
           {!['annulee', 'realisee'].includes(s.statut) && (
             <button
-              onClick={() => { if (window.confirm('Annuler cette soutenance ?')) cancelMut.mutate() }}
+              onClick={() => setConfirmCancel(true)}
               disabled={cancelMut.isPending}
               className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
             >

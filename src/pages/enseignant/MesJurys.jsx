@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMesJurys, confirmJury, declineJury } from '../../api/jury'
+import { useToast } from '../../contexts/ToastContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import TableSkeleton from '../../components/TableSkeleton'
 
 const STATUT_BADGE = {
   en_attente: 'border border-amber-300 bg-amber-50 text-amber-600',
@@ -54,17 +57,21 @@ function formatDateShort(iso) {
 
 export default function MesJurys() {
   const [filtre, setFiltre] = useState('')
+  const [confirmDecline, setConfirmDecline] = useState(null)
   const qc = useQueryClient()
+  const toast = useToast()
 
   const { data, isLoading } = useQuery({ queryKey: ['mes-jurys'], queryFn: getMesJurys })
 
-  const confirm = useMutation({
+  const confirmMut = useMutation({
     mutationFn: confirmJury,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mes-jurys'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['mes-jurys'] }); toast.success('Participation confirmée.') },
+    onError: () => toast.error('Erreur lors de la confirmation.'),
   })
   const decline = useMutation({
     mutationFn: declineJury,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['mes-jurys'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['mes-jurys'] }); toast.success('Invitation déclinée.') },
+    onError: () => toast.error('Erreur lors du refus.'),
   })
 
   const jurys = useMemo(() => {
@@ -74,6 +81,8 @@ export default function MesJurys() {
   }, [data, filtre])
 
   const enAttente = (data?.data ?? []).filter((j) => j.statut_confirmation === 'en_attente').length
+
+  const confirm = confirmMut
 
   return (
     <div>
@@ -103,22 +112,28 @@ export default function MesJurys() {
         </select>
       </div>
 
-      {/* Table */}
+      <ConfirmDialog
+        open={!!confirmDecline}
+        title="Décliner l'invitation"
+        message="Refuser votre participation à ce jury ? Cette action ne peut pas être annulée."
+        confirmLabel="Décliner"
+        confirmClass="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+        onConfirm={() => { decline.mutate(confirmDecline); setConfirmDecline(null) }}
+        onCancel={() => setConfirmDecline(null)}
+      />
+
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {isLoading ? (
-          <p className="px-6 py-10 text-center text-sm text-gray-400">Chargement...</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['#', 'Soutenance', 'Étudiant', 'Date', 'Rôle', 'Statut', 'Actions'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              {['#', 'Soutenance', 'Étudiant', 'Date', 'Rôle', 'Statut', 'Actions'].map((h) => (
+                <th key={h} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {isLoading ? <TableSkeleton cols={7} rows={5} /> : <tbody className="divide-y divide-gray-50">
               {jurys.map((j, i) => (
                 <tr key={j.id} className="hover:bg-gray-50">
                   <td className="px-5 py-4 text-sm text-gray-400">
@@ -155,7 +170,7 @@ export default function MesJurys() {
                           <CheckIcon />
                         </button>
                         <button
-                          onClick={() => { if (window.confirm('Décliner cette invitation ?')) decline.mutate(j.id) }}
+                          onClick={() => setConfirmDecline(j.id)}
                           disabled={decline.isPending}
                           title="Refuser"
                           className="transition hover:text-red-500 disabled:opacity-40"
@@ -176,9 +191,8 @@ export default function MesJurys() {
                   </td>
                 </tr>
               )}
-            </tbody>
-          </table>
-        )}
+            </tbody>}
+        </table>
       </div>
     </div>
   )

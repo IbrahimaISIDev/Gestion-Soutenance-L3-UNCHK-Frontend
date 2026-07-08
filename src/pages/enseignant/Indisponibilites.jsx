@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getIndisponibilites, createIndisponibilite, updateIndisponibilite, deleteIndisponibilite } from '../../api/indisponibilites'
+import { useToast } from '../../contexts/ToastContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import TableSkeleton from '../../components/TableSkeleton'
 
 function PencilIcon() {
   return (
@@ -89,7 +92,9 @@ function IndispoModal({ initial, onClose, onSave, saving }) {
 
 export default function Indisponibilites() {
   const [modal, setModal] = useState(null)
+  const [confirm, setConfirm] = useState(null)
   const qc = useQueryClient()
+  const toast = useToast()
 
   const { data, isLoading } = useQuery({
     queryKey: ['indisponibilites'],
@@ -98,15 +103,18 @@ export default function Indisponibilites() {
 
   const create = useMutation({
     mutationFn: createIndisponibilite,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['indisponibilites'] }); setModal(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['indisponibilites'] }); setModal(null); toast.success('Indisponibilité ajoutée.') },
+    onError: () => toast.error('Erreur lors de la création.'),
   })
   const update = useMutation({
     mutationFn: ({ id, ...body }) => updateIndisponibilite(id, body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['indisponibilites'] }); setModal(null) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['indisponibilites'] }); setModal(null); toast.success('Indisponibilité mise à jour.') },
+    onError: () => toast.error('Erreur lors de la modification.'),
   })
   const remove = useMutation({
     mutationFn: deleteIndisponibilite,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['indisponibilites'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['indisponibilites'] }); toast.success('Indisponibilité supprimée.') },
+    onError: () => toast.error('Erreur lors de la suppression.'),
   })
 
   const indispos = data?.data ?? []
@@ -139,22 +147,28 @@ export default function Indisponibilites() {
         />
       )}
 
-      {/* Table */}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Supprimer l'indisponibilité"
+        message="Supprimer cette période d'indisponibilité ?"
+        confirmLabel="Supprimer"
+        confirmClass="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+        onConfirm={() => { remove.mutate(confirm); setConfirm(null) }}
+        onCancel={() => setConfirm(null)}
+      />
+
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {isLoading ? (
-          <p className="px-6 py-10 text-center text-sm text-gray-400">Chargement...</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['#', 'Période', 'Motif', 'Actions'].map((h) => (
-                  <th key={h} className="px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              {['#', 'Période', 'Motif', 'Actions'].map((h) => (
+                <th key={h} className="px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {isLoading ? <TableSkeleton cols={4} rows={4} /> : <tbody className="divide-y divide-gray-50">
               {indispos.map((item, i) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm text-gray-400">
@@ -180,8 +194,7 @@ export default function Indisponibilites() {
                         <PencilIcon />
                       </button>
                       <button
-                        onClick={() => { if (window.confirm('Supprimer cette indisponibilité ?')) remove.mutate(item.id) }}
-                        disabled={remove.isPending}
+                        onClick={() => setConfirm(item.id)}
                         className="transition hover:text-red-500"
                         title="Supprimer"
                       >
@@ -198,9 +211,8 @@ export default function Indisponibilites() {
                   </td>
                 </tr>
               )}
-            </tbody>
-          </table>
-        )}
+            </tbody>}
+        </table>
       </div>
     </div>
   )

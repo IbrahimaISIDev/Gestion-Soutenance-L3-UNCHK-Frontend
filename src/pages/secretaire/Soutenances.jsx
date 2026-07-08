@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSoutenances, confirmSoutenance, cancelSoutenance } from '../../api/soutenances'
+import { useToast } from '../../contexts/ToastContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import TableSkeleton from '../../components/TableSkeleton'
 
 const STATUT_BADGE = {
   brouillon: 'bg-gray-100 text-gray-600',
@@ -66,20 +69,24 @@ export default function Soutenances() {
   const [page, setPage]           = useState(1)
   const [search, setSearch]       = useState('')
   const [statutFilter, setStatutFilter] = useState('')
+  const [confirmCancel, setConfirmCancel] = useState(null)
   const qc = useQueryClient()
+  const toast = useToast()
 
   const { data, isLoading } = useQuery({
     queryKey: ['soutenances', page],
     queryFn: () => getSoutenances(page),
   })
 
-  const confirm = useMutation({
+  const confirmMut = useMutation({
     mutationFn: confirmSoutenance,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['soutenances'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['soutenances'] }); toast.success('Soutenance confirmée.') },
+    onError: (e) => toast.error(e?.response?.data?.message ?? 'Confirmation impossible.'),
   })
   const cancel = useMutation({
     mutationFn: cancelSoutenance,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['soutenances'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['soutenances'] }); toast.success('Soutenance annulée.') },
+    onError: () => toast.error('Erreur lors de l\'annulation.'),
   })
 
   const soutenances = useMemo(() => {
@@ -136,22 +143,28 @@ export default function Soutenances() {
         </select>
       </div>
 
-      {/* Table */}
+      <ConfirmDialog
+        open={!!confirmCancel}
+        title="Annuler la soutenance"
+        message="Annuler cette soutenance ? Les membres du jury et l'étudiant seront notifiés."
+        confirmLabel="Annuler la soutenance"
+        confirmClass="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+        onConfirm={() => { cancel.mutate(confirmCancel); setConfirmCancel(null) }}
+        onCancel={() => setConfirmCancel(null)}
+      />
+
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {isLoading ? (
-          <p className="px-6 py-10 text-center text-sm text-gray-400">Chargement...</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['#', 'Étudiant', 'Titre', 'Filière', 'Date', 'Statut', 'Actions'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              {['#', 'Étudiant', 'Titre', 'Filière', 'Date', 'Statut', 'Actions'].map((h) => (
+                <th key={h} className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {isLoading ? <TableSkeleton cols={7} rows={7} /> : <tbody className="divide-y divide-gray-50">
               {soutenances.map((s, i) => (
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-5 py-4 text-sm text-gray-400">
@@ -179,8 +192,8 @@ export default function Soutenances() {
                       </button>
                       {s.statut === 'planifiee' && (
                         <button
-                          onClick={() => confirm.mutate(s.id)}
-                          disabled={confirm.isPending}
+                          onClick={() => confirmMut.mutate(s.id)}
+                          disabled={confirmMut.isPending}
                           className="transition hover:text-emerald-600"
                           title="Confirmer"
                         >
@@ -189,8 +202,7 @@ export default function Soutenances() {
                       )}
                       {!['annulee', 'realisee'].includes(s.statut) && (
                         <button
-                          onClick={() => { if (window.confirm('Annuler cette soutenance ?')) cancel.mutate(s.id) }}
-                          disabled={cancel.isPending}
+                          onClick={() => setConfirmCancel(s.id)}
                           className="transition hover:text-red-500"
                           title="Annuler"
                         >
@@ -208,9 +220,8 @@ export default function Soutenances() {
                   </td>
                 </tr>
               )}
-            </tbody>
-          </table>
-        )}
+            </tbody>}
+        </table>
       </div>
 
       {/* Pagination */}

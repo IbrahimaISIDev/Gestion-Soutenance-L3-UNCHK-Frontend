@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSalles, createSalle, updateSalle, deleteSalle } from '../../api/salles'
+import { useToast } from '../../contexts/ToastContext'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import TableSkeleton from '../../components/TableSkeleton'
 
 function PencilIcon() {
   return (
@@ -82,13 +85,15 @@ export default function AdminSalles() {
   const [page, setPage]   = useState(1)
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(null)
+  const [confirm, setConfirm] = useState(null)
   const qc = useQueryClient()
+  const toast = useToast()
 
   const { data, isLoading } = useQuery({ queryKey: ['salles', page], queryFn: () => getSalles(page) })
 
-  const create = useMutation({ mutationFn: createSalle, onSuccess: () => { qc.invalidateQueries({ queryKey: ['salles'] }); setModal(null) } })
-  const update = useMutation({ mutationFn: ({ id, ...body }) => updateSalle(id, body), onSuccess: () => { qc.invalidateQueries({ queryKey: ['salles'] }); setModal(null) } })
-  const remove = useMutation({ mutationFn: deleteSalle, onSuccess: () => qc.invalidateQueries({ queryKey: ['salles'] }) })
+  const create = useMutation({ mutationFn: createSalle, onSuccess: () => { qc.invalidateQueries({ queryKey: ['salles'] }); setModal(null); toast.success('Salle créée.') }, onError: () => toast.error('Erreur lors de la création.') })
+  const update = useMutation({ mutationFn: ({ id, ...body }) => updateSalle(id, body), onSuccess: () => { qc.invalidateQueries({ queryKey: ['salles'] }); setModal(null); toast.success('Salle mise à jour.') }, onError: () => toast.error('Erreur lors de la modification.') })
+  const remove = useMutation({ mutationFn: deleteSalle, onSuccess: () => { qc.invalidateQueries({ queryKey: ['salles'] }); toast.success('Salle supprimée.') }, onError: (e) => toast.error(e?.response?.data?.message ?? 'Suppression impossible.') })
 
   const salles = useMemo(() => {
     const list = data?.data ?? []
@@ -129,6 +134,16 @@ export default function AdminSalles() {
         />
       )}
 
+      <ConfirmDialog
+        open={!!confirm}
+        title="Supprimer la salle"
+        message={`Supprimer ${confirm?.nom} ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        confirmClass="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+        onConfirm={() => { remove.mutate(confirm.id); setConfirm(null) }}
+        onCancel={() => setConfirm(null)}
+      />
+
       {/* Barre de recherche */}
       <div className="mb-4">
         <div className="relative w-72">
@@ -142,21 +157,20 @@ export default function AdminSalles() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        {isLoading ? (
-          <p className="px-6 py-10 text-center text-sm text-gray-400">Chargement...</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['#', 'Nom', 'Capacité', 'Localisation', 'Statut', 'Actions'].map((h) => (
-                  <th key={h} className="px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              {['#', 'Nom', 'Capacité', 'Localisation', 'Statut', 'Actions'].map((h) => (
+                <th key={h} className="px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {isLoading ? (
+            <TableSkeleton cols={6} rows={6} />
+          ) : (
             <tbody className="divide-y divide-gray-50">
               {salles.map((s, i) => (
                 <tr key={s.id} className="hover:bg-gray-50">
@@ -169,25 +183,20 @@ export default function AdminSalles() {
                   <td className="px-6 py-4">
                     {s.actif ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Active
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Active
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-500">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                        Inactive
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />Inactive
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <div className={`flex items-center gap-3 ${!s.actif ? 'opacity-40' : 'text-gray-400'}`}>
+                    <div className="flex items-center gap-3 text-gray-400">
                       <button onClick={() => setModal(s)} className="transition hover:text-indigo-600" title="Modifier">
                         <PencilIcon />
                       </button>
-                      <button
-                        onClick={() => { if (window.confirm(`Supprimer ${s.nom} ?`)) remove.mutate(s.id) }}
-                        className="transition hover:text-red-500" title="Supprimer"
-                      >
+                      <button onClick={() => setConfirm(s)} className="transition hover:text-red-500" title="Supprimer">
                         <TrashIcon />
                       </button>
                     </div>
@@ -198,8 +207,8 @@ export default function AdminSalles() {
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">Aucune salle trouvée.</td></tr>
               )}
             </tbody>
-          </table>
-        )}
+          )}
+        </table>
       </div>
 
       {meta && meta.last_page > 1 && (
