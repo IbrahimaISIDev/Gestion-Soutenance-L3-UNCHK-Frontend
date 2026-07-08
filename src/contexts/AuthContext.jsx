@@ -7,31 +7,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Rehydrater depuis le token stocké
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setLoading(false)
-      return
-    }
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    if (!token) { setLoading(false); return }
     getMe()
       .then(({ data }) => setUser(data))
-      .catch(() => localStorage.removeItem('token'))
+      .catch(() => {
+        localStorage.removeItem('token')
+        sessionStorage.removeItem('token')
+      })
       .finally(() => setLoading(false))
   }, [])
 
-  const login = useCallback(async (credentials) => {
+  // remember=true → localStorage (persistant), remember=false → sessionStorage (onglet seulement)
+  const login = useCallback(async (credentials, remember = true) => {
     const { token, user } = await apiLogin(credentials)
-    localStorage.setItem('token', token)
+    if (remember) {
+      localStorage.setItem('token', token)
+      sessionStorage.removeItem('token')
+    } else {
+      sessionStorage.setItem('token', token)
+      localStorage.removeItem('token')
+    }
     setUser(user)
     return user
   }, [])
 
   const logout = useCallback(async () => {
-    try {
-      await apiLogout()
-    } finally {
+    try { await apiLogout() } finally {
       localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
       setUser(null)
     }
   }, [])

@@ -8,9 +8,9 @@ const client = axios.create({
   },
 })
 
-// Injecter le token Bearer à chaque requête
+// Injecter le token Bearer (localStorage = remember me, sessionStorage = session seulement)
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -21,6 +21,7 @@ client.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
       window.location.href = '/login'
     }
     return Promise.reject(error)
