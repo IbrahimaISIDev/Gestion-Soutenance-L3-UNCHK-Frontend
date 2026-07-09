@@ -4,10 +4,10 @@ import { useForm } from 'react-hook-form'
 import { useAuth } from '../../contexts/AuthContext'
 
 const DEMO_ACCOUNTS = [
-  { email: 'admin@univ.sn',       password: 'password', role: 'ADMIN',       badge: 'bg-amber-100 text-amber-800'   },
-  { email: 'secretaire@univ.sn',  password: 'password', role: 'SECRÉTAIRE',  badge: 'bg-sky-100 text-sky-800'       },
-  { email: 'etudiant@univ.sn',    password: 'password', role: 'ÉTUDIANT',    badge: 'bg-emerald-100 text-emerald-700' },
-  { email: 'responsable@univ.sn', password: 'password', role: 'RESPONSABLE', badge: 'bg-orange-100 text-orange-700' },
+  { email: 'admin@gestsoutenance.test',        password: 'password', role: 'ADMIN',       badge: 'bg-amber-100 text-amber-800'    },
+  { email: 'secretaire@gestsoutenance.test',   password: 'password', role: 'SECRÉTAIRE',  badge: 'bg-sky-100 text-sky-800'        },
+  { email: 'mamadou-diao@etudiant.gestsoutenance.test', password: 'password', role: 'ÉTUDIANT', badge: 'bg-emerald-100 text-emerald-700' },
+  { email: 'responsable@gestsoutenance.test',  password: 'password', role: 'RESPONSABLE', badge: 'bg-orange-100 text-orange-700'  },
 ]
 
 const DASHBOARDS = {
@@ -130,7 +130,7 @@ export default function Login() {
               </label>
               <input
                 type="email"
-                placeholder="admin@univ.sn"
+                placeholder="admin@gestsoutenance.test"
                 autoComplete="email"
                 {...register('email', { required: "L'adresse email est requise." })}
                 className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:ring-2 ${
